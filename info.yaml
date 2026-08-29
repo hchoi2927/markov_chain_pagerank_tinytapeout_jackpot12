@@ -1,7 +1,7 @@
 # Tiny Tapeout project information
 project:
   title:        "Markov Chain - PageRank"      # Project title
-  author:       "Helen Choi, Prisha Mishra, Nitika Chakkirala, Samiha Zaman "      # Your name
+  author:       "Helen Choi, Nitika Chakkirala"      # Your name
   discord:      "heleny_0927"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "Markov-chain PageRank engine: iterative 6×6 matrix-vector multiplication with 6 parallel MAC units."      # One line description of what your project does
   language:     "Verilog, SystemVerilog, Python" # other examples include SystemVerilog, Amaranth, VHDL, etc
