@@ -1,10 +1,10 @@
 # Tiny Tapeout project information
 project:
   title:        "Markov Chain - PageRank"      # Project title
-  author:       "Helen Choi, Nitika Chakkirala"      # Your name
-  discord:      "heleny_0927"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Markov-chain PageRank engine: iterative 6×6 matrix-vector multiplication with 6 parallel MAC units."      # One line description of what your project does
-  language:     "Verilog, SystemVerilog, Python" # other examples include SystemVerilog, Amaranth, VHDL, etc
+  author:       "Nitika Chakkirala, Helen Choi"      # Your name
+  discord:      "nikki2358, heleny_0927"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
+  description:  "Markov Chain PageRank Engine: iterative 6×6 matrix-vector multiplication with 6 parallel MAC units."      # One line description of what your project does
+  language:     "SystemVerilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     10       # Clock frequency in Hz (or 0 if not applicable)
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
