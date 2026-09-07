@@ -42,7 +42,7 @@ module tt_um_nitikac24_hchoi2927_pagerank (
     );
 
     // Map PageRank result to Tiny Tapeout output pins
-    assign uo_out[0] = done;
+    assign uo_out[0]   = done;
     assign uo_out[3:1] = rd_data[10:8];
     assign uo_out[7:4] = 4'b0000;
 
@@ -51,9 +51,8 @@ module tt_um_nitikac24_hchoi2927_pagerank (
     // All bidirectional pins are used as outputs.
     assign uio_oe = 8'hFF;
 
-    // uio_in is unused because all uio pins are outputs.
-    // ena is provided by Tiny Tapeout but isn't needed by our logic.
-    wire _unused = &{ena, uio_in};
+    // Unused inputs
+    wire _unused = &{ena, uio_in, ui_in[7:5]};
 
 endmodule
 
