@@ -26,7 +26,7 @@ Each row of the transition matrix sums to 512, representing a probability distri
 
 The PageRank calculation repeatedly performs matrix-vector multiplication. The current PageRank vector is multiplied by the transition matrix to produce the next vector.
 
-The design contains six parallel multiply-accumulate (MAC) units. The MAC units process the matrix-vector multiplication in parallel, accumulating the contributions for the six output elements.
+The design contains one resuable multiply-accumulate (MAC) unit. The MAC unit processes the matrix-vector multiplication, accumulating the contributions for the six output elements.
 
 The calculation starts with the initial PageRank vector:
   [512, 0, 0, 0, 0, 0]
@@ -50,7 +50,7 @@ The Tiny Tapeout wrapper maps these signals onto the standard Tiny Tapeout GPIO 
 Fixed-point arithmetic
 The transition probabilities and PageRank values use a scale factor of 512.
 
-The MAC units use a 32-bit accumulator to provide additional precision and prevent overflow during multiplication and accumulation.
+The MAC unit uses a 32-bit accumulator to provide additional precision and prevent overflow during multiplication and accumulation.
 
 After each matrix-vector multiplication, the accumulated values are scaled back down by the fixed-point scale factor before becoming the next PageRank vector.
 
