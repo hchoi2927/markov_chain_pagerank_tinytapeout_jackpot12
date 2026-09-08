@@ -1,89 +1,200 @@
-<!---
+# Markov Chain PageRank Engine
 
-This file is used to generate your project datasheet. Please fill in the information below and delete any unused
-sections.
+A Tiny Tapeout SystemVerilog implementation of a PageRank engine for a 6×6 Markov-chain transition matrix.
 
-You can also include images in this folder and reference them in the markdown. Each image must be less than
-512 kb in size, and the combined size of all images must be less than 1 MB.
--->
+## Overview
 
-## How it works
+This project implements PageRank as an iterative matrix-vector multiplication:
 
-This project implements a hardware PageRank engine based on a 6×6 Markov-chain transition matrix.
+```text
+P_next = P_cur × T
+```
 
-The design models six pages:
-  Home
-  News
-  Sports
-  Shopping
-  Videos
-  Maps
-The transition matrix is stored in transition_mem.sv. Each matrix entry uses 11-bit fixed-point representation with a scale factor of 512, where:
-  512 represents 1.0
-  256 represents 0.5
-  128 represents 0.25
-Each row of the transition matrix sums to 512, representing a probability distribution.
+The design uses:
 
-The PageRank calculation repeatedly performs matrix-vector multiplication. The current PageRank vector is multiplied by the transition matrix to produce the next vector.
+- A 6×6 transition matrix
+- 11-bit fixed-point values
+- A scale factor of 512 (`2^9`), where 512 represents 1.0
+- One reusable 32-bit multiply-accumulate (MAC) unit
+- 10 PageRank iterations
+- Six stored output values that can be read through the Tiny Tapeout GPIO interface
 
-The design contains one resuable multiply-accumulate (MAC) unit. The MAC unit processes the matrix-vector multiplication, accumulating the contributions for the six output elements.
+The initial PageRank vector is:
 
-The calculation starts with the initial PageRank vector:
-  [512, 0, 0, 0, 0, 0]
-which represents all initial probability assigned to the Home page.
+```text
+[512, 0, 0, 0, 0, 0]
+```
 
-The engine performs 10 iterations by default. After the final iteration, the resulting six PageRank values are stored and can be read through the output interface.
+This represents an initial probability of 1.0 assigned to the Home page.
 
-Control signals
-The internal markov_top module has the following interface:
-Signal   Description
-start    Starts a new PageRank calculation
-done     Indicates that the final result is ready
-rd_en    Enables reading a result
-rd_addr  Selects which PageRank value to read
-rd_data	 Selected 11-bit PageRank value
-clk      Clock
-rst_n	   Active-low reset
+## Hardware Architecture
 
-The Tiny Tapeout wrapper maps these signals onto the standard Tiny Tapeout GPIO interface.
+The design consists of four main components.
 
-Fixed-point arithmetic
-The transition probabilities and PageRank values use a scale factor of 512.
+### `markov_top.sv`
+
+Controls the PageRank calculation using a finite-state machine.
+
+It:
+
+- Initializes the PageRank vector.
+- Selects one output element at a time.
+- Reuses the single MAC unit to accumulate six products.
+- Scales the accumulated result back to the 11-bit fixed-point representation.
+- Repeats the process for 10 iterations.
+- Stores the final six PageRank values for readback.
+
+### `mac_unit.sv`
+
+Implements the reusable multiply-accumulate unit.
+
+Two 11-bit values are multiplied to produce a 22-bit product, which is accumulated in a 32-bit register.
+
+### `transition_mem.sv`
+
+Stores the 36 entries of the 6×6 transition matrix.
+
+Each row of the transition matrix contains six probabilities that sum to 512, representing a complete probability distribution.
+
+### `project.v`
+
+Provides the Tiny Tapeout wrapper and maps the PageRank control and result signals onto the Tiny Tapeout GPIO interface.
+
+## GPIO Interface
+
+### Inputs
+
+| Pin | Signal |
+|---|---|
+| `ui_in[0]` | `start` |
+| `ui_in[1]` | `rd_en` |
+| `ui_in[4:2]` | `rd_addr` |
+
+The remaining dedicated input pins are unused.
+
+### Outputs
+
+| Pin | Signal |
+|---|---|
+| `uo_out[0]` | `done` |
+| `uo_out[3:1]` | `rd_data[10:8]` |
+
+The remaining dedicated output pins are unused.
+
+### Bidirectional GPIO
+
+| Pin | Signal |
+|---|---|
+| `uio_out[7:0]` | `rd_data[7:0]` |
+
+The `uio` pins are configured as outputs by the Tiny Tapeout wrapper.
+
+## Reading Results
+
+After `done` becomes high, select a PageRank result by placing the desired address on `ui_in[4:2]` and asserting `ui_in[1]` (`rd_en`).
+
+| Address | Page |
+|---|---|
+| `0` | Home |
+| `1` | News |
+| `2` | Sports |
+| `3` | Shopping |
+| `4` | Videos |
+| `5` | Maps |
+
+The 11-bit result is reconstructed from the Tiny Tapeout outputs:
+
+```text
+uo_out[3:1] = rd_data[10:8]
+uio_out[7:0] = rd_data[7:0]
+```
+
+## Fixed-Point Arithmetic
+
+The transition probabilities and PageRank values use an 11-bit fixed-point representation with a scale factor of 512.
+
+Therefore:
+
+```text
+512 = 1.0
+256 = 0.5
+128 = 0.25
+```
 
 The MAC unit uses a 32-bit accumulator to provide additional precision and prevent overflow during multiplication and accumulation.
 
-After each matrix-vector multiplication, the accumulated values are scaled back down by the fixed-point scale factor before becoming the next PageRank vector.
+After each matrix-vector multiplication, the accumulated value is shifted right by 9 bits to convert the product back to the original fixed-point scale.
 
-## How to test
+## PageRank Calculation
 
-Reset the design by driving rst_n low, then release reset by driving rst_n high.
+The engine starts with:
 
-To start a PageRank calculation:
-Set ui_in[0] (start) high.
-Provide at least one clock cycle.
-Return ui_in[0] low.
-Wait for uo_out[0] (done) to become high.
-Once done is high, the final PageRank values can be read one at a time.
+```text
+P_cur = [512, 0, 0, 0, 0, 0]
+```
 
-The result address is controlled by ui_in[4:2]:
-Address  Page
-      0  Home
-      1	 News
-      2  Sports
-      3  Shopping
-      4  Videos
-      5  Maps
-Set ui_in[1] (rd_en) high while selecting the desired address.
+This assigns the entire initial probability to the Home page.
 
-The 11-bit rd_data value is divided across the Tiny Tapeout outputs:
-  uo_out[3:1] contains rd_data[10:8].
-  uio_out[7:0] contains rd_data[7:0].
-The uio pins are configured as outputs by the Tiny Tapeout wrapper.
+For each iteration, the engine calculates:
 
-For verification, the RTL testbench should compare the six hardware results against a software reference implementation using the same fixed-point arithmetic and transition matrix.
+```text
+P_next[j] = Σ(P_cur[i] × T[i][j])
+```
 
-## External hardware
+for each of the six output states.
+
+The single MAC unit is reused to calculate all 36 matrix-vector multiplication terms.
+
+After all six output values have been calculated, `P_next` becomes the input vector for the next iteration.
+
+The engine performs 10 iterations by default.
+
+After the final iteration, the six resulting PageRank values are stored for readback.
+
+## Simulation
+
+The RTL testbench uses cocotb and Icarus Verilog.
+
+From the `test` directory, run:
+
+```bash
+make -B
+```
+
+The testbench:
+
+1. Resets the design.
+2. Starts a PageRank calculation.
+3. Waits for the calculation to complete.
+4. Checks that `done` is asserted.
+5. Reads all six PageRank results.
+6. Verifies that each result is within the expected fixed-point range.
+7. Checks that the six results sum to approximately 512.
+
+The fixed-point sum may differ slightly from 512 because of integer rounding during the iterative calculations.
+
+## Tiny Tapeout
+
+This project is configured as a **2×2 Tiny Tapeout design**.
+
+The Tiny Tapeout wrapper uses the standard `tt_um_nitikac24_hchoi2927_pagerank` top-level module.
+
+The design uses:
+
+- SystemVerilog
+- SKY130A
+- SkyWater `sky130_fd_sc_hd` standard cells
+- A 50 MHz clock
+- 2×2 Tiny Tapeout area
+
+The repository includes GitHub Actions workflows for simulation, GDS generation, FPGA support, and documentation.
+
+## External Hardware
 
 No external hardware is required.
 
-The project uses only the standard Tiny Tapeout clock, reset, input, output, and bidirectional GPIO pins.
+The project uses only the standard Tiny Tapeout clock, reset, dedicated GPIO, and bidirectional GPIO pins.
+
+## License
+
+This project is licensed under the Apache License 2.0. See the `LICENSE` file for details.
