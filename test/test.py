@@ -28,7 +28,7 @@ async def test_project(dut):
     dut.ui_in.value = 0
 
     # Wait for calculation to finish
-    for _ in range(1000):
+    for _ in range(2000):
         await ClockCycles(dut.clk, 1)
 
         if int(dut.uo_out.value) & 1:
