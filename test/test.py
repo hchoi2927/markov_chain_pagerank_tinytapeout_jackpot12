@@ -31,7 +31,7 @@ async def test_project(dut):
     for _ in range(1000):
         await ClockCycles(dut.clk, 1)
 
-        if dut.uo_out.value & 1:
+        if int(dut.uo_out.value) & 1:
             break
     else:
         raise AssertionError("PageRank calculation did not finish")
